@@ -612,6 +612,14 @@
 
   /* ===== Mega Bazaar ===== */
   .cart-btn{margin-left:auto;}
+  .ev-photo{position:relative;display:block;margin:-8px -8px 16px;padding:18px 14px 0;border-radius:12px;overflow:hidden;
+    background:linear-gradient(180deg,#DCEBFA 0%,#EEF5FC 62%,#E3E8EF 62%,#E3E8EF 100%);text-decoration:none;}
+  .ev-photo img{display:block;width:100%;height:auto;position:relative;filter:drop-shadow(0 6px 8px rgba(5,14,45,.18));transition:transform .25s ease;}
+  .ev-photo:hover img{transform:scale(1.02);}
+  .ev-photo:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+  .ev-pin{position:absolute;left:10px;top:10px;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.92);color:var(--navy);
+    font-size:11.5px;font-weight:800;border-radius:999px;padding:4px 9px;box-shadow:0 2px 6px rgba(5,14,45,.12);}
+  .ev-pin svg{color:var(--orange);}
   .ev-kicker{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;color:#fff;margin-bottom:12px;letter-spacing:.01em;}
   .ev-status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;border-radius:999px;padding:5px 11px;margin-bottom:10px;background:var(--navy-tint);color:var(--navy);}
   .ev-status::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;}
@@ -652,6 +660,7 @@
   @media (max-width:640px){
     .cart-btn .cb-l{display:inline;}
     .ev-kicker{font-size:12px;margin-bottom:10px;}
+    .ev-photo{margin:-4px -4px 12px;padding:14px 10px 0;}
     .feat{grid-template-columns:1fr;}
   }
 </style>
@@ -689,6 +698,10 @@
       <div class="flow"><span class="hl">Cek produk &amp; ukuran</span><i>&rarr;</i><span>Masukkan keranjang</span><i>&rarr;</i><span id="flowVenue">Datang ke Kridosono</span></div>
     </div>
     <div class="picker" id="picker">
+      <a class="ev-photo" id="evPhoto" href="https://maps.app.goo.gl/6hvqY7ya1apMji4y5" target="_blank" rel="noopener" data-tr="maps" data-si="0" data-src="foto-gedung" aria-label="Kridosono Sport Hall, buka petunjuk arah di Google Maps">
+        <img src="kridosono.webp" width="900" height="447" alt="Gedung Kridosono Sport Hall" fetchpriority="high" decoding="async">
+        <span class="ev-pin"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Lokasi bazaar</span>
+      </a>
       <div class="ev-status" id="evStatus" hidden></div>
       <h2 id="evName">Lokasi &amp; jam buka</h2>
       <ul class="ev-info">
@@ -2293,6 +2306,9 @@
     $('evHours').textContent = E.open ? `${hhmm(E.open)} \u2013 ${hhmm(E.close)} WIB` : '';
     $('evNote').textContent = E.note || 'Setiap hari selama event';
     $('pickerMaps').href = mapsUrl(0);
+    $('evPhoto').href = mapsUrl(0);
+    $('evPhoto').setAttribute('aria-label', E.venue + ', buka petunjuk arah di Google Maps');
+    $('evPhoto').querySelector('img').alt = 'Gedung ' + E.venue;
     const st = evStatus(), el = $('evStatus');
     el.hidden = !st;
     if(st){ el.className = 'ev-status ' + st.cls; el.textContent = st.txt; }
