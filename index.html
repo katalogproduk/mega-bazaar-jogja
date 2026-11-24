@@ -528,7 +528,10 @@
 
     main.wrap{padding-top:0;}
     .controls:has(.fb-more.open){z-index:130;}
-    .controls{position:sticky;top:var(--bb-h,46px);z-index:45;background:var(--paper);margin:0 -14px;padding:0 14px 10px;}
+    .pbar{margin:0 -14px 8px;padding:8px 14px 6px;}
+    .pp{font-size:12.5px;padding:7px 12px;}
+    .pbar.stuck{box-shadow:none;}
+    .controls{position:sticky;top:calc(var(--bb-h,46px) + var(--pb-h,0px));z-index:45;background:var(--paper);margin:0 -14px;padding:0 14px 10px;}
     .tabs{margin-bottom:10px;}
     .tab{font-size:13.5px;padding:11px 12px;}
     .filter-bar{flex-wrap:nowrap;align-items:center;gap:8px;padding:0;border:none;background:none;margin:0;}
@@ -611,6 +614,21 @@
   @media (prefers-reduced-motion:reduce){ .skel{animation:none;} *{scroll-behavior:auto !important;} }
 
   /* ===== Mega Bazaar ===== */
+  /* bar pilihan promo yang ikut menempel saat scroll */
+  .pbar{position:sticky;top:var(--bb-h,58px);z-index:46;background:var(--paper);margin:0 0 12px;padding:10px 0 8px;transition:box-shadow .2s ease;}
+  .pbar.stuck{box-shadow:0 8px 14px -10px rgba(5,14,45,.35);}
+  .pbar-in{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 1px;}
+  .pbar-in::-webkit-scrollbar{display:none;}
+  .pp{--c:var(--navy);--bg:var(--navy-tint);flex:none;display:inline-flex;align-items:center;gap:7px;border:1.5px solid transparent;background:var(--bg);color:var(--c);
+    font-family:inherit;font-weight:800;font-size:13.5px;border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s;}
+  .pp .n{font-weight:700;font-size:11.5px;opacity:.75;}
+  .pp.bogo{--c:#11714A;--bg:#E8F5EE;} .pp.sel{--c:var(--orange-deep);--bg:var(--orange-tint);} .pp.lp{--c:#B3261E;--bg:#FDECEC;}
+  .pp:hover{border-color:var(--c);}
+  .pp[aria-pressed="true"]{background:var(--c);color:#fff;box-shadow:0 4px 10px -3px color-mix(in srgb,var(--c) 60%,transparent);}
+  .pp[aria-pressed="true"] .n{opacity:.9;}
+  .pp:disabled{opacity:.45;cursor:default;}
+  .pp:focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
+  .pp .dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
   .cart-btn{margin-left:auto;}
   .ev-photo{position:relative;display:block;margin:-8px -8px 16px;padding:18px 14px 0;border-radius:12px;overflow:hidden;
     background:linear-gradient(180deg,#DCEBFA 0%,#EEF5FC 62%,#E3E8EF 62%,#E3E8EF 100%);text-decoration:none;}
@@ -734,6 +752,7 @@
   </section>
 
   <div id="browse" hidden>
+  <nav class="pbar" id="pbar" aria-label="Pilih promo"><div class="pbar-in" id="pbarIn"></div></nav>
   <div class="controls" id="controls">
   <div class="tabs" role="tablist" id="tabs" aria-label="Kategori"></div>
   <div class="subs" id="subs" role="group" aria-label="Sub-kategori" hidden></div>
@@ -1171,7 +1190,46 @@
   function storeLabel(i){ const s = D.stores[i]; return s ? s.name + (s.city ? ', ' + s.city : '') : ''; }
   function mapsUrl(i){ return EVENT.maps || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(EVENT.venue + ' Yogyakarta'); }
 
+  // ---------- bar promo (menempel saat scroll) ----------
+  function renderPbar(){
+    if(!P.length) return;
+    const types = PT_ORDER.filter(t => P.some(p => p.colors.some(c => ptOf(c) === t)));
+    const opts = [[0, 'Semua', '']].concat(types.map(t => [PT_CODE[t], PROMOS[t].short, t]));
+    if(D.all && P.some(p => p.colors.some(c => c.d === 0))) opts.push([-2, 'Harga normal', 'norm']);
+    // jumlah produk tiap pilihan mengikuti kategori, pencarian, dan filter lain yang sedang aktif
+    const html = opts.map(([v, label, cls]) => {
+      const n = withState({disc: v}, () => currentList().length);
+      return `<button type="button" class="pp ${cls}" data-v="${v}" data-l="${esc(label)}" aria-pressed="${S.disc === v}" ${n || S.disc === v ? '' : 'disabled'}>${cls && cls !== 'norm' ? '<span class="dot" aria-hidden="true"></span>' : ''}${esc(label)}<span class="n">${n.toLocaleString('id-ID')}</span></button>`;
+    }).join('');
+    if($('pbarIn').innerHTML !== html){
+      $('pbarIn').innerHTML = html;
+      const on = $('pbarIn').querySelector('[aria-pressed="true"]');
+      if(on) on.scrollIntoView({block: 'nearest', inline: 'nearest'});
+    }
+  }
+  $('pbarIn').addEventListener('click', e => {
+    const b = e.target.closest('.pp'); if(!b || b.disabled) return;
+    const v = Number(b.dataset.v);
+    if(v === S.disc) return;
+    setDisc(v);
+    track('search', Object.assign({q: 'bar promo: ' + b.dataset.l.toLowerCase(), r: lastCount, src: 'bar-promo'}, storeInfo(S.store)));
+    // kembali ke awal hasil supaya produk promo yang dipilih langsung terlihat
+    const top = $('browse').getBoundingClientRect().top + window.scrollY - $('brandbar').offsetHeight - 4;
+    if(window.scrollY > top) window.scrollTo({top, behavior: 'smooth'});
+  });
+  (function(){
+    const bar = $('pbar');
+    const setH = () => document.documentElement.style.setProperty('--pb-h', bar.offsetHeight + 'px');
+    if(window.ResizeObserver) new ResizeObserver(setH).observe(bar); else window.addEventListener('resize', setH);
+    let raf = 0;
+    window.addEventListener('scroll', () => {
+      if(raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; bar.classList.toggle('stuck', bar.getBoundingClientRect().top <= $('brandbar').offsetHeight + 1 && window.scrollY > 0); });
+    }, {passive: true});
+  })();
+
   function render(){
+    renderPbar();
     const base = [];
     P.forEach(p => { const v = view(p); if(v) base.push({p, v}); });
 
