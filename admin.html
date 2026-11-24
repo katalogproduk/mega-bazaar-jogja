@@ -324,6 +324,26 @@
   .plbl{display:grid;grid-template-columns:130px 1fr 1.6fr;gap:8px;align-items:center;margin-top:10px;}
   .plbl input{border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:13px;min-width:0;}
   /* ===== stok gudang & area jual ===== */
+  .pmode{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .pmode label{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--panel);font-size:13.5px;}
+  .pmode label:has(input:checked){border-color:var(--navy);background:var(--navy-tint);}
+  .pmode input{margin-top:3px;accent-color:var(--navy);}
+  .pmode small{display:block;color:var(--ink-soft);font-size:12px;margin-top:2px;line-height:1.4;}
+  .pdiff{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);}
+  .pdiff .chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;}
+  .pdiff .chips span{font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 10px;background:var(--paper);}
+  .pdiff .chips .up{background:#E8F5EE;color:#11714A;} .pdiff .chips .nw{background:var(--navy-tint);color:var(--navy);}
+  .pdiff .chips .dn{background:#FDECEC;color:#B3261E;} .pdiff .chips .ty{background:var(--orange-tint);color:var(--orange-deep);}
+  .pdiff td.up{color:#11714A;font-weight:700;} .pdiff td.dn{color:#B3261E;font-weight:700;}
+  @media (max-width:640px){ .pmode{grid-template-columns:1fr;} }
+  .hide-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
+  .hide-list label{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer;background:var(--panel);font-size:13px;}
+  .hide-list label.on{border-color:#E9A28B;background:#FFF3EE;}
+  .hide-list input{margin-top:2px;accent-color:var(--orange);}
+  .hide-list b{font-family:'JetBrains Mono',monospace;font-size:12.5px;}
+  .hide-list small{display:block;color:var(--ink-soft);font-size:11.5px;}
+  .sti .bin.hid{background:#FFF3EE;border-color:#E9A28B;color:#B3261E;text-decoration:line-through;}
+  .bin.hid{font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid #E9A28B;border-radius:5px;padding:1px 6px;background:#FFF3EE;color:#B3261E;}
   .st-controls .st-q{flex:1 1 260px;}
   .st-controls .st-q input{width:100%;}
   .st-sum{font-size:13px;color:var(--ink-soft);margin:0 0 10px;}
@@ -481,19 +501,24 @@
       <p class="desc">Dibaca dari <b>promo.json</b> di repo. Satu file promo bisa berisi beberapa sheet, misalnya <b>BOGO</b>, <b>Selected (SMDS)</b>, dan <b>Last Piece (DCNP)</b>. Setiap sheet diberi jenis promo, lalu semua dibaca sekaligus. Bila <b>Loc Amount</b> di list promo kosong atau 0, harga diambil dari master artikel.</p>
       <div class="status" id="promoStatus">Memeriksa promo.json&hellip;</div>
       <div class="status" id="promoPubStatus" hidden></div>
+      <div id="promoDiff" hidden></div>
       <details class="more" id="promoMore">
-        <summary>Ganti dengan file promo baru (.xlsx / .xlsb)</summary>
+        <summary>Upload file promo (list baru atau tambahan artikel / naik diskon)</summary>
         <label class="dropzone" id="promoDrop">
           <input type="file" id="promoFile" accept=".xlsx,.xls,.xlsb">
           <div class="dz-title">Pilih file promo</div>
           <div class="dz-sub">Contoh: 2026.11_LIST PROMO NOV 3.xlsb. Kolom wajib: Article, Cross-Site, Article Description, Loc Amount, Disc.</div>
         </label>
         <div id="promoOpts" hidden>
+          <div class="pmode" id="promoMode" role="radiogroup" aria-label="Cara memakai file promo">
+            <label><input type="radio" name="pmode" value="add"><span><b>Tambah / perbarui list yang ada</b><small>Artikel baru ditambahkan. Artikel yang sudah ada diganti diskon &amp; jenis promonya sesuai file ini. Artikel lain tetap.</small></span></label>
+            <label><input type="radio" name="pmode" value="replace"><span><b>Ganti semua</b><small>List promo lama dihapus dan diganti isi file ini. Pakai untuk periode promo baru.</small></span></label>
+          </div>
           <div class="tbl" style="max-height:none;margin-top:12px"><table class="mini" id="promoSheets"></table></div>
           <div class="row">
             <div class="field"><label for="promoPeriod">Periode (tampil ke customer)</label><input id="promoPeriod" type="text" placeholder="24 Nov - 7 Des 2026"></div>
             <button class="btn" type="button" id="promoBuild">Baca sheet terpilih</button>
-            <button class="btn" type="button" id="promoPub" disabled hidden>Terbitkan promo.json</button>
+            <button class="btn orange" type="button" id="promoPub" disabled hidden>Terbitkan promo &amp; perbarui katalog</button>
             <button class="btn ghost" type="button" id="promoDl" disabled>Unduh promo.json</button>
           </div>
         </div>
@@ -544,6 +569,7 @@
         </div>
         <div class="field" style="margin-top:12px"><label>Lokasi bazaar</label><div class="zones" id="locs"></div></div>
         <div class="field" style="margin-top:12px"><label>Zone yang tampil ke customer</label><div class="zones" id="zones"></div></div>
+        <div class="field" style="margin-top:12px"><label>Bin yang disembunyikan dari customer <span class="muted" style="font-weight:500">(tetap terlihat di tab Stok)</span></label><div class="zones" id="hideBinsUpd"></div></div>
       </div>
     </div>
   </section>
@@ -597,6 +623,16 @@
   <div id="panelStok" role="tabpanel" aria-labelledby="tabSt" hidden>
     <div class="status" id="stStatus">Memuat stok-bin.json&hellip;</div>
     <div id="stMain" hidden>
+      <section class="card hide-card" id="hideCard">
+        <h3>Sembunyikan bin dari customer</h3>
+        <p class="sub">Produk di bin yang dicentang tidak dihitung di katalog customer. Kalau ukuran yang sama juga ada di bin lain, yang tampil hanya stok dari bin lain itu. Di tab ini stoknya tetap terlihat, ditandai <span class="bin hid">disembunyikan</span>. Pengaturan ini juga berlaku otomatis untuk upload stok berikutnya.</p>
+        <div class="hide-list" id="hideBinsSt"></div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn orange" type="button" id="hideApply" disabled>Simpan &amp; terapkan ke katalog</button>
+          <span class="muted" id="hideNote" style="font-size:12.5px"></span>
+        </div>
+        <div class="status" id="hideStatus" hidden style="margin-top:10px"></div>
+      </section>
       <div class="stat-row" id="stStats"></div>
       <div class="an-controls st-controls">
         <div class="field st-q"><label for="stQ">Cari</label><input id="stQ" type="search" placeholder="Nama, artikel 12 digit, generic, atau bin" autocomplete="off"></div>
@@ -606,6 +642,7 @@
           <option value="sa">Ada di area jual</option>
           <option value="wh">Ada di gudang</option>
           <option value="other">Ada di staging / bin lain</option>
+          <option value="hid">Ada di bin tersembunyi</option>
         </select></div>
         <div class="field"><label for="stPromo">Promo</label><select id="stPromo"></select></div>
         <div class="field"><label for="stCat">Kategori</label><select id="stCat"></select></div>
@@ -757,7 +794,7 @@
   // ===== Nama toko untuk customer. Tambah/ubah di sini bila ada toko baru. =====
   // region dipakai untuk mengelompokkan pilihan toko di halaman customer.
   // Naikkan setiap kali admin.html diperbarui. Dipakai untuk mendeteksi halaman admin lama di cache browser.
-  const ADMIN_VERSION = '2026-11-22c';
+  const ADMIN_VERSION = '2026-11-25b';
   let curTab = 'upd';
 
   // ===================== LOGIN AKUN =====================
@@ -874,7 +911,7 @@
   };
   // tebak jenis promo dari nama sheet / judul di atas tabel
   function guessType(txt){
-    const t = String(txt || '').toUpperCase();
+    const t = String(txt || '').toUpperCase().replace(/[_.\-]+/g, ' ');
     if(/BOGO|BUY\s*2/.test(t)) return 'bogo';
     if(/LAST\s*PIECE|\bLP\b|DCNP/.test(t)) return 'lp';
     if(/SELECT|SMDS/.test(t)) return 'sel';
@@ -1022,7 +1059,9 @@
   function promoSummary(){
     const n = promoCount(), L = promoLabels();
     const parts = PTYPES.filter(t => n[t]).map(t => `<span class="ptype ${t}">${esc(L[t].short)}</span> ${fmt(n[t])} artikel`);
-    return `<span><b>Promo aktif:</b> ${parts.join(' &middot; ') || 'belum ada artikel'}. Sumber: ${esc(promoDB.source || '-')}${promoDB.period ? ', periode ' + esc(promoDB.period) : ''}.</span>`;
+    const la = (promoDB.adds || []).slice(-1)[0];
+    const addTxt = la ? ` Tambahan terakhir: ${esc(la.file)} (${fmt(la.new || 0)} baru, ${fmt(la.up || 0)} naik diskon${la.down ? ', ' + fmt(la.down) + ' turun' : ''}) ${new Date(la.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta'})}${la.by ? ' oleh ' + esc(la.by) : ''}.` : '';
+    return `<span><b>Promo aktif:</b> ${parts.join(' &middot; ') || 'belum ada artikel'}. Sumber: ${esc(promoDB.source || '-')}${promoDB.period ? ', periode ' + esc(promoDB.period) : ''}.${addTxt}</span>`;
   }
 
   async function loadPromoJson(){
@@ -1074,7 +1113,7 @@
         const h = rows.findIndex(r => r.some(c => /^article$/i.test(norm(c))));
         const title = h > 0 ? rows.slice(0, h).map(r => r.map(norm).filter(Boolean).join(' ')).filter(Boolean).join(' ') : '';
         const n = h < 0 ? 0 : rows.slice(h + 1).filter(r => /^\d{6,}$/.test(norm(r[rows[h].findIndex(c => /^article$/i.test(norm(c)))]))).length;
-        return {name, title, n, t: h < 0 ? 'skip' : (guessType(name) || guessType(title) || 'skip')};
+        return {name, title, n, t: h < 0 || !n ? 'skip' : (guessType(name) || guessType(title) || guessType(file.name) || 'skip')};
       });
       promoWb.meta = sheets;
       $('promoSheets').innerHTML = '<thead><tr><th>Sheet</th><th>Judul di file</th><th style="text-align:right">Artikel</th><th>Jenis promo</th></tr></thead><tbody>' +
@@ -1084,6 +1123,10 @@
       if(!$('promoPeriod').value) $('promoPeriod').value = (promoDB && promoDB.period) || guessPeriod(file.name);
       $('promoOpts').hidden = false;
       $('promoDl').disabled = true;
+      $('promoDiff').hidden = true;
+      // sudah ada list promo -> default tambah/perbarui; belum ada -> ganti semua
+      const hasPromo = promoDB && promoDB.items && Object.keys(promoDB.items).length;
+      document.querySelector(`#promoMode input[value="${hasPromo ? 'add' : 'replace'}"]`).checked = true;
       setStatus($('promoStatus'), '', `<span>${sheets.length} sheet terbaca. Periksa <b>jenis promo</b> tiap sheet di tabel bawah, lalu klik <b>Baca sheet terpilih</b>.</span>`);
     }catch(e){
       setStatus($('promoStatus'), 'err', '<b>Gagal membaca file promo.</b> ' + esc(e.message || e));
@@ -1157,6 +1200,54 @@
     return out;
   }
 
+  // gabungkan list tambahan ke promo yang ada: artikel baru ditambah, yang sudah ada diganti diskon/jenisnya
+  function mergePromo(db, add, sheets){
+    const diff = [];
+    const L = promoLabels();
+    Object.entries(add).forEach(([cs, it]) => {
+      const ex = db.items[cs];
+      if(!ex){ db.items[cs] = it; diff.push({cs, n: it.n, kind: 'new', d0: null, d1: it.d, t0: '', t1: it.t || ''}); return; }
+      const d0 = ex.d, t0 = ex.t || '';
+      const kind = it.d > d0 ? 'up' : it.d < d0 ? 'down' : (it.t || '') !== t0 ? 'type' : 'same';
+      ex.d = it.d; ex.t = it.t || ex.t;
+      if(it.p > 0) ex.p = it.p;
+      Object.assign(ex.a, it.a);
+      diff.push({cs, n: ex.n || it.n, kind, d0, d1: it.d, t0, t1: ex.t || ''});
+    });
+    db.adds = (db.adds || []).concat([{file: promoFileName, date: new Date().toISOString(), by: ME ? ME.user : '',
+      n: diff.length, new: diff.filter(x => x.kind === 'new').length, up: diff.filter(x => x.kind === 'up').length, down: diff.filter(x => x.kind === 'down').length}]);
+    db.source = (db.source || '') + (db.source ? ' + ' : '') + promoFileName;
+    db.sheets = (db.sheets || []).concat(sheets.map(x => Object.assign({}, x, {add: true})));
+    lastDiff = diff;
+    return diff;
+  }
+  let lastDiff = [];
+  function renderPromoDiff(diff){
+    const L = promoLabels(), lbl = t => t ? L[t].short : 'Harga normal';
+    const cnt = k => diff.filter(x => x.kind === k).length;
+    const typeCh = diff.filter(x => x.kind !== 'new' && x.t0 !== x.t1);
+    const order = {down: 0, new: 1, up: 2, type: 3, same: 4};
+    const rows = diff.slice().sort((a, b) => order[a.kind] - order[b.kind] || (b.d1 - (b.d0 || 0)) - (a.d1 - (a.d0 || 0)));
+    const K = {new: 'Baru', up: 'Diskon naik', down: 'Diskon turun', type: 'Ganti jenis', same: 'Tidak berubah'};
+    $('promoDiff').innerHTML = `<div class="pdiff"><b>Perubahan dari ${esc(promoFileName)}</b> <span class="muted">(${fmt(diff.length)} warna produk)</span>
+      <div class="chips"><span class="nw">${fmt(cnt('new'))} artikel baru</span><span class="up">${fmt(cnt('up'))} diskon naik</span>${cnt('down') ? `<span class="dn">${fmt(cnt('down'))} diskon turun</span>` : ''}${typeCh.length ? `<span class="ty">${fmt(typeCh.length)} pindah jenis promo</span>` : ''}${cnt('same') ? `<span>${fmt(cnt('same'))} tidak berubah</span>` : ''}</div>
+      ${cnt('down') ? '<div class="status warn" style="margin-bottom:10px"><span><b>Ada diskon yang turun.</b> Artikel tersebut tetap mengikuti file terbaru. Periksa di tabel bila tidak sengaja.</span></div>' : ''}
+      <details${diff.length <= 30 ? ' open' : ''}><summary>Lihat rincian</summary>
+      <div class="tbl" style="margin-top:8px"><table class="mini"><thead><tr><th>Status</th><th>Produk</th><th>Generic.warna</th><th>Promo lama</th><th>Promo baru</th></tr></thead><tbody>
+      ${rows.slice(0, 400).map(x => `<tr><td class="${x.kind === 'up' ? 'up' : x.kind === 'down' ? 'dn' : ''}">${K[x.kind]}</td><td class="wrap">${esc(x.n || '')}</td><td class="mono">${esc(x.cs)}</td>
+        <td>${x.d0 === null ? '<span class="muted">-</span>' : (x.d0 ? '-' + x.d0 + '% ' : '') + esc(lbl(x.d0 ? x.t0 : ''))}</td><td><b>-${x.d1}%</b> ${esc(lbl(x.t1))}</td></tr>`).join('')}
+      </tbody></table></div>${rows.length > 400 ? `<p class="muted">Menampilkan 400 dari ${fmt(rows.length)}. Unduh Excel untuk daftar lengkap.</p>` : ''}</details>
+      <div class="actions" style="margin-top:10px"><button class="btn ghost" type="button" id="promoDiffXls">Unduh daftar perubahan (Excel)</button></div></div>`;
+    $('promoDiff').hidden = false;
+    $('promoDiffXls').addEventListener('click', () => {
+      const aoa = [['Status', 'Produk', 'Generic.warna', 'Diskon lama %', 'Promo lama', 'Diskon baru %', 'Promo baru']].concat(
+        rows.map(x => [K[x.kind], x.n || '', x.cs, x.d0 === null ? '' : x.d0, x.d0 === null ? '' : lbl(x.d0 ? x.t0 : ''), x.d1, lbl(x.t1)]));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Perubahan promo');
+      XLSX.writeFile(wb, 'Perubahan_promo_' + today() + '.xlsx');
+    });
+  }
+
   async function onPromoBuild(){
     if(!promoWb) return;
     const pick = [...$('promoSheets').querySelectorAll('select')].map(sel => ({s: promoWb.meta[sel.dataset.sh], t: sel.value})).filter(x => x.t !== 'skip');
@@ -1180,9 +1271,18 @@
         sheets.push({name: s.name, t, n});
       });
       const prev = promoDB && promoDB.promos;
-      promoDB = {v: 2, kind: 'bazaar', generated: today(), source: promoFileName, sheets, period: $('promoPeriod').value.trim(), promos: prev || {}, items};
+      const mode = (document.querySelector('#promoMode input:checked') || {}).value || 'replace';
+      if(mode === 'add' && promoDB && promoDB.items){
+        const diff = mergePromo(promoDB, items, sheets);
+        promoDB.generated = today();
+        promoDB.period = $('promoPeriod').value.trim() || promoDB.period;
+        renderPromoDiff(diff);
+      }else{
+        promoDB = {v: 2, kind: 'bazaar', generated: today(), source: promoFileName, sheets, period: $('promoPeriod').value.trim(), promos: prev || {}, items, adds: []};
+        $('promoDiff').hidden = true;
+      }
       $('promoDl').disabled = false;
-      setStatus($('promoStatus'), 'ok', promoSummary() + (dup ? ` <span>${fmt(dup)} warna ada di lebih dari satu sheet, dipakai diskon terbesar.</span>` : '') + ` <span>${ghReady() ? 'Klik <b>Terbitkan promo.json</b> supaya tersimpan di repo.' : 'Unduh promo.json lalu upload ke repo supaya tidak perlu dibaca ulang.'}</span>`);
+      setStatus($('promoStatus'), 'ok', (mode === 'add' ? '<span><b>Tambahan digabung ke list promo.</b></span> ' : '') + promoSummary() + (dup ? ` <span>${fmt(dup)} warna ada di lebih dari satu sheet, dipakai diskon terbesar.</span>` : '') + ` <span>${ghReady() ? 'Klik <b>Terbitkan promo &amp; perbarui katalog</b> supaya langsung tampil ke customer.' : 'Unduh promo.json lalu upload ke repo supaya tidak perlu dibaca ulang.'}</span>`);
       renderPromoLabels();
       katalog = null; $('result').classList.remove('show');
     }catch(e){
@@ -1313,6 +1413,7 @@
         `<label><input type="checkbox" value="${esc(l)}" ${!anyBaz || BAZ_LOCATION.test(l) ? 'checked' : ''}> ${esc(l)} <small>${fmt(n)} baris</small></label>`).join('');
       $('zones').innerHTML = Object.entries(zoneCount).sort((a, b) => b[1] - a[1]).map(([z, n]) =>
         `<label><input type="checkbox" value="${esc(z)}" ${DEFAULT_ZONES.includes(z) ? 'checked' : ''}> ${esc(z)} <small>${fmt(n)} baris</small></label>`).join('');
+      renderHideUpd();
       $('stockOpts').hidden = false;
       setStatus($('stockStatus'), 'ok', `<span><b>${esc(file.name)}</b>: ${fmt(data.length)} baris stok terbaca dari ${locs.length} lokasi. Periksa tanggal stok, lokasi, dan zone di bawah.</span>`);
       katalog = null; $('result').classList.remove('show');
@@ -1324,8 +1425,9 @@
   }
 
   // ===================== 4. BUILD =====================
-  function bazaarStore(){
-    const code = stock && stock.loc0 ? (/^\s*(\d{3,6})/.exec(stock.loc0) || [])[1] || 'BAZ' : 'BAZ';
+  function bazaarStore(src){
+    src = src || stock;
+    const code = src && src.loc0 ? (/^\s*(\d{3,6})/.exec(src.loc0) || [])[1] || 'BAZ' : 'BAZ';
     return {code, name: EVENT.short || EVENT.name, city: EVENT.venue || '', region: '', wa: waNumber(EVENT.wa)};
   }
 
@@ -1344,17 +1446,22 @@
   }
   const zoneKind = z => /sales/i.test(z) ? 'sa' : /ware/i.test(z) ? 'wh' : 'ot';
 
-  function buildKatalog(){
-    const zones = new Set([...document.querySelectorAll('#zones input:checked')].map(i => i.value));
-    const locs = new Set([...document.querySelectorAll('#locs input:checked')].map(i => i.value));
+  // opt (untuk "terapkan bin tersembunyi" tanpa upload ulang): {stock, zones, locs, stockDate}
+  function buildKatalog(opt){
+    opt = opt || {};
+    const src = opt.stock || stock;
+    const zones = opt.zones || new Set([...document.querySelectorAll('#zones input:checked')].map(i => i.value));
+    const locs = opt.locs || new Set([...document.querySelectorAll('#locs input:checked')].map(i => i.value));
     if(!locs.size) throw new Error('Centang minimal satu lokasi bazaar.');
     if(!zones.size) throw new Error('Centang minimal satu zone.');
-    stock.loc0 = [...locs][0];
+    src.loc0 = [...locs][0];
+    const hideBins = new Set(HIDE.bins);
+    const hidden = {qty: 0, bins: {}};
     const DB = priceDB();
     const artMap = new Map();
     Object.entries(DB).forEach(([cs, it]) => Object.entries(it.a).forEach(([art, sz]) => artMap.set(art, [cs, sz])));
 
-    const {c, rows} = stock;
+    const {c, rows} = src;
     const agg = new Map();          // cs -> Map(size -> qty)  (hanya zone yang dicentang, untuk customer)
     const artBy = new Map();        // cs -> Map(size -> Set(artikel 12 digit)), untuk pesan WA
     const nameFallback = new Map(); // cs -> nama dari file stok
@@ -1409,6 +1516,7 @@
       // katalog customer
       if(!zones.has(zone)) return;
       if(reason){ exclude(art, r, reason, qty); return; }
+      if(hideBins.has(bcode)){ hidden.qty += qty; hidden.bins[bcode] = (hidden.bins[bcode] || 0) + qty; return; }
       let m1 = agg.get(cs); if(!m1){ m1 = new Map(); agg.set(cs, m1); }
       m1.set(size, (m1.get(size) || 0) + qty);
       let ab = artBy.get(cs); if(!ab){ ab = new Map(); artBy.set(cs, ab); }
@@ -1472,9 +1580,9 @@
     });
     binItems.sort((a, b) => a.n.localeCompare(b.n) || a.k.localeCompare(b.k));
 
-    const store = bazaarStore();
+    const store = bazaarStore(src);
     const generated = new Date().toISOString();
-    const stockDate = $('stockDate').value || today();
+    const stockDate = opt.stockDate || $('stockDate').value || today();
     return {
       katalog: {
         v: 1, kind: 'bazaar',
@@ -1483,14 +1591,15 @@
         promos: promoLabels(),
         all: !!masterDB,
         adminVersion: ADMIN_VERSION,
+        hiddenBins: [...hideBins],
         bases,
         stores: [store],
         items
       },
-      bin: {v: 1, stockDate, generated, file: stock.file, locs: [...locs], zonesShown: [...zones], bases, bins, items: binItems},
+      bin: {v: 1, stockDate, generated, file: src.file, locs: [...locs], hiddenBins: [...hideBins], zonesShown: [...zones], bases, bins, items: binItems},
       excluded: [...excluded.values()].sort((a, b) => b.qty - a.qty),
       stats: {promoProducts: items.filter(p => p.c.some(c => c.d > 0)).length, products: items.length, colors: agg.size, qty: totalQty, noPhoto,
-        typeProd: Object.fromEntries(Object.entries(typeProd).map(([t, s]) => [t, s.size])), zoneQty, zonesShown: [...zones]}
+        typeProd: Object.fromEntries(Object.entries(typeProd).map(([t, s]) => [t, s.size])), zoneQty, zonesShown: [...zones], hidden}
     };
   }
 
@@ -1698,6 +1807,8 @@
     $('katPub').disabled = true;
     try{
       await ghPut('katalog.json', katalog, `Update stok ${katalog.stockDate} via admin`);
+      if(HIDE.dirty){ setStatus(st, '', 'Menyimpan pengaturan bin tersembunyi&hellip;'); await saveHide(); }
+      HIDE.applied = new Set(katalog.hiddenBins || []);
       if(binData){ setStatus(st, '', 'Menyimpan stok-bin.json (rincian per bin) ke GitHub&hellip;'); await ghPut('stok-bin.json', binData, `Update stok per bin ${binData.stockDate} via admin`); }
       setStatus(st, '', '<span><b>Tersimpan di GitHub.</b> Menunggu halaman customer diperbarui (biasanya 1&ndash;2 menit)&hellip;</span>');
       waitLive(katalog.generated, st);
@@ -1738,7 +1849,19 @@
   $('katPub').addEventListener('click', () => katalog && publishKatalog());
   $('masterDl').addEventListener('click', () => masterDB && download('master.json', masterDB));
   $('masterPub').addEventListener('click', () => masterDB && publishJson('master.json', masterDB, $('masterPub'), $('masterPubStatus'), 'master artikel'));
-  $('promoPub').addEventListener('click', () => promoDB && publishJson('promo.json', promoDB, $('promoPub'), $('promoPubStatus'), 'list promo'));
+  $('promoPub').addEventListener('click', async () => {
+    if(!promoDB) return;
+    const st = $('promoPubStatus');
+    setStatus(st, '', 'Menyimpan promo.json ke GitHub&hellip;');
+    $('promoPub').disabled = true;
+    try{
+      await ghPut('promo.json', promoDB, 'Update list promo via admin');
+      await rebuildFromBin(st, 'promo');
+    }catch(e){
+      setStatus(st, 'err', '<b>Gagal menyimpan promo.json.</b> ' + esc(ghErrText(e)));
+    }
+    $('promoPub').disabled = false;
+  });
   $('fotoPub').addEventListener('click', () => imgDB && publishJson('gambar.json', imgDB, $('fotoPub'), $('fotoPubStatus'), 'master foto'));
 
   const EXCL_REASON = {
@@ -1788,6 +1911,7 @@
         <div class="stat ${stats.noPhoto ? 'flag' : ''}"><div class="num">${fmt(stats.noPhoto)}</div><div class="lbl">Warna tanpa foto</div></div>`;
       $('storeTbl').innerHTML = '<thead><tr><th>Zone</th><th>Tampil ke customer</th><th style="text-align:right">Pcs</th></tr></thead><tbody>' +
         Object.entries(stats.zoneQty).sort((a, b) => b[1] - a[1]).map(([z, q]) => `<tr><td>${esc(z)}</td><td>${stats.zonesShown.includes(z) ? 'Ya' : '<span class="muted">Tidak (hanya di tab Stok)</span>'}</td><td class="n">${fmt(q)}</td></tr>`).join('') + '</tbody>';
+      if(stats.hidden.qty) $('stats').insertAdjacentHTML('beforeend', `<div class="stat flag"><div class="num">${fmt(stats.hidden.qty)}</div><div class="lbl">Pcs disembunyikan (bin ${esc(Object.keys(stats.hidden.bins).join(', '))})</div></div>`);
       $('result').classList.add('show');
       $('pubBox').hidden = true;
       $('result').scrollIntoView({behavior: 'smooth', block: 'nearest'});
@@ -1851,6 +1975,7 @@
   const hashTab = Object.entries(TABS).find(([k, v]) => v[2] && location.hash === '#' + v[2]);
   if(hashTab) showTab(hashTab[0]);
   loadEvent();
+  loadHide();
   if(ME && ME.role === 'admin') api('users').then(j => { if(j.ok){ USERS = j.users; akBadge(); } }).catch(() => {});
   };
   if(!document.body.classList.contains('locked')) startAdmin();
@@ -1916,6 +2041,138 @@
     $('evPub').disabled = false;
   });
 
+  // ===================== BIN TERSEMBUNYI (pengaturan.json) =====================
+  const HIDE = {bins: new Set(), applied: new Set(), dirty: false, loaded: false, updated: '', by: ''};
+  async function loadHide(){
+    try{
+      const res = await fetch('pengaturan.json?t=' + Date.now(), {cache: 'no-store'});
+      if(res.ok){
+        const j = await res.json();
+        HIDE.bins = new Set((j && j.hideBins) || []);
+        HIDE.updated = j.updated || ''; HIDE.by = j.by || '';
+      }
+    }catch(e){}
+    HIDE.applied = new Set(HIDE.bins);
+    HIDE.loaded = true;
+    if(stock) renderHideUpd();
+    if(ST.data && curTab === 'st') stPrep();
+  }
+  async function saveHide(){
+    const o = {v: 1, updated: new Date().toISOString(), by: ME ? ME.user : '', hideBins: [...HIDE.bins].sort()};
+    await ghPut('pengaturan.json', o, 'Update bin tersembunyi via admin');
+    HIDE.dirty = false; HIDE.updated = o.updated; HIDE.by = o.by;
+  }
+  function setHide(bin, on){
+    if(on) HIDE.bins.add(bin); else HIDE.bins.delete(bin);
+    HIDE.dirty = true;
+    katalog = null; $('result').classList.remove('show');
+    if(stock) renderHideUpd();
+    if(ST.data){ stPrep(); }
+  }
+  function hideLabel(b, zone, q, extra, on){
+    return `<label class="${on ? 'on' : ''}"><input type="checkbox" value="${esc(b)}" ${on ? 'checked' : ''}><span><b>${esc(b)}</b><small>${esc(zone)} &middot; ${fmt(q)} pcs${extra ? ' &middot; ' + extra : ''}</small></span></label>`;
+  }
+  // daftar bin dari file stok yang baru diupload (tab Update katalog)
+  function renderHideUpd(){
+    if(!stock) return;
+    const {c, rows} = stock, agg = new Map();
+    rows.forEach(r => {
+      const q = Number(r[c.qty]); if(!(q > 0)) return;
+      const z = norm(r[c.zone]) || '(kosong)', b = (c.bin >= 0 && norm(r[c.bin])) || z;
+      const e = agg.get(b) || {z, q: 0}; e.q += q; agg.set(b, e);
+    });
+    $('hideBinsUpd').innerHTML = [...agg.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([b, e]) => hideLabel(b, e.z, e.q, '', HIDE.bins.has(b))).join('') || '<span class="muted">Kolom Bin Code tidak ada di file.</span>';
+  }
+  $('hideBinsUpd').addEventListener('change', e => { const i = e.target.closest('input'); if(i) setHide(i.value, i.checked); });
+
+  // daftar bin dari stok-bin.json (tab Stok) + terapkan tanpa upload stok ulang
+  function renderHideSt(){
+    const D = ST.data; if(!D) return;
+    const agg = D.bins.map(([b, z]) => ({b, z, q: 0, n: new Set()}));
+    D.items.forEach(it => it.s.forEach(([, , at]) => at.forEach(([bi, q]) => { agg[bi].q += q; agg[bi].n.add(it.g); })));
+    // bin yang dulu disembunyikan tapi sudah tidak ada di stok terakhir tetap ditampilkan supaya bisa dilepas
+    HIDE.bins.forEach(b => { if(!agg.some(x => x.b === b)) agg.push({b, z: 'tidak ada di stok terakhir', q: 0, n: new Set()}); });
+    $('hideBinsSt').innerHTML = agg.sort((a, b) => a.b.localeCompare(b.b)).map(x => hideLabel(x.b, x.z, x.q, fmt(x.n.size) + ' produk', HIDE.bins.has(x.b))).join('');
+    const same = HIDE.bins.size === HIDE.applied.size && [...HIDE.bins].every(b => HIDE.applied.has(b));
+    $('hideApply').disabled = same && !HIDE.dirty;
+    const who = HIDE.updated ? ` Terakhir diubah ${new Date(HIDE.updated).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'})}${HIDE.by ? ' oleh ' + esc(HIDE.by) : ''}.` : '';
+    $('hideNote').innerHTML = (same && !HIDE.dirty ? 'Katalog customer sudah sesuai pengaturan ini.' : '<b style="color:var(--orange-deep)">Belum diterapkan ke katalog customer.</b>') + who;
+  }
+  $('hideBinsSt').addEventListener('change', e => { const i = e.target.closest('input'); if(i) setHide(i.value, i.checked); });
+
+  // susun ulang "file stok" dari stok-bin.json, lalu buat katalog dengan aturan yang sama
+  function stockFromBinData(D){
+    const c = {sku: 0, name: 1, gen: 2, bin: 3, zone: 4, l3: 5, l4: 6, qty: 7, loc: 8, brand: -1, cat: -1, l2: -1};
+    const loc = (D.locs || [])[0] || 'BAZAAR';
+    const rows = [];
+    D.items.forEach(it => it.s.forEach(([z, arts, at]) => {
+      const list = String(arts || '').split('/').filter(Boolean);
+      at.forEach(([bi, q]) => {
+        const [b, zone] = D.bins[bi];
+        rows.push([list[0] || '', `${it.n}, ${it.k}, ${z}`, it.g, b, zone, it.l3 || '', it.l4 || '', q, loc]);
+        // artikel lain di ukuran yang sama tetap ikut tercatat (qty 0 tidak dihitung, hanya untuk nomor artikel)
+      });
+    }));
+    return {file: D.file, c, rows};
+  }
+  // Bangun ulang katalog customer dari stok terakhir (stok-bin.json) tanpa upload file stok lagi.
+  // Dipakai saat bin tersembunyi berubah atau list promo ditambah.
+  async function rebuildFromBin(st, why){
+    if(!ghReady()){ setStatus(st, 'err', '<b>Hubungkan GitHub dulu</b> di tab Update katalog supaya katalog bisa diterbitkan.'); return null; }
+    if(stock && stock.rows){
+      // stok baru saja diupload di sesi ini: buat ulang dari file aslinya (lebih lengkap)
+      try{
+        const res = buildKatalog();
+        katalog = res.katalog; binData = res.bin; ST.data = res.bin;
+        setStatus(st, '', 'Menyimpan katalog.json &amp; stok-bin.json ke GitHub&hellip;');
+        await ghPut('katalog.json', katalog, `Update katalog (${why}) via admin`);
+        await ghPut('stok-bin.json', binData, `Update stok per bin ${binData.stockDate} via admin`);
+        if(HIDE.dirty) await saveHide();
+        HIDE.applied = new Set(katalog.hiddenBins || []);
+        ST.local = false;
+        setStatus(st, 'ok', `<span><b>Katalog customer diperbarui</b> dari file stok ${esc(stock.file)}: ${fmt(res.stats.products)} produk tampil. Halaman customer berubah dalam 1&ndash;2 menit.</span>`);
+        loadLive();
+        return res;
+      }catch(e){ setStatus(st, 'err', '<b>Gagal memperbarui katalog.</b> ' + esc(e.message || ghErrText(e))); return null; }
+    }
+    if(!ST.data){
+      try{ const r = await fetch('stok-bin.json?t=' + Date.now(), {cache: 'no-store'}); if(r.ok){ ST.data = await r.json(); ST.local = false; } }catch(e){}
+    }
+    if(!ST.data){ setStatus(st, 'warn', '<span><b>stok-bin.json belum ada.</b> Upload file stok lalu klik Buat &amp; terbitkan katalog.</span>'); return null; }
+    if(!promoDB){ setStatus(st, 'warn', '<span>List promo masih dimuat. Tunggu sebentar lalu klik lagi.</span>'); return null; }
+    setStatus(st, '', 'Menyusun ulang katalog dari stok per ' + esc(tglID(ST.data.stockDate)) + '&hellip;');
+    await nextFrame();
+    try{
+      const D = ST.data;
+      const res = buildKatalog({stock: stockFromBinData(D), zones: new Set(D.zonesShown || DEFAULT_ZONES), locs: new Set(D.locs || ['BAZAAR']), stockDate: D.stockDate});
+      // nomor artikel lengkap diambil dari katalog yang tayang supaya tidak ada yang hilang
+      try{
+        const live = await (await fetch('katalog.json?t=' + Date.now(), {cache: 'no-store'})).json();
+        const am = new Map();
+        live.items.forEach(p => p.c.forEach(c => c.sz.forEach((z, i) => am.set(p.g + '.' + c.k + '|' + z, c.a && c.a[i]))));
+        res.katalog.items.forEach(p => p.c.forEach(c => { c.a = c.sz.map((z, i) => am.get(p.g + '.' + c.k + '|' + z) || c.a[i]); }));
+      }catch(e){}
+      katalog = res.katalog;
+      setStatus(st, '', 'Menyimpan katalog.json ke GitHub&hellip;');
+      await ghPut('katalog.json', katalog, `Update katalog (${why}, stok ${katalog.stockDate}) via admin`);
+      if(HIDE.dirty) await saveHide();
+      HIDE.applied = new Set(HIDE.bins);
+      const binsTxt = Object.entries(res.stats.hidden.bins).map(([b, q]) => `${esc(b)} (${fmt(q)} pcs)`).join(', ');
+      setStatus(st, 'ok', `<span><b>Katalog customer diperbarui</b> memakai stok per ${esc(tglID(D.stockDate))}: ${fmt(res.stats.products)} produk tampil (${fmt(res.stats.promoProducts)} promo)${binsTxt ? '; bin disembunyikan: ' + binsTxt : ''}. Halaman customer berubah dalam 1&ndash;2 menit.</span>`);
+      loadLive();
+      return res;
+    }catch(e){
+      setStatus(st, 'err', '<b>Gagal memperbarui katalog.</b> ' + esc(e.status ? ghErrText(e) : (e.message || e)));
+      return null;
+    }
+  }
+  $('hideApply').addEventListener('click', async () => {
+    $('hideApply').disabled = true;
+    await rebuildFromBin($('hideStatus'), 'bin tersembunyi');
+    if(ST.data) stPrep(); else renderHideSt();
+  });
+
   // ===================== STOK GUDANG & AREA JUAL (khusus admin) =====================
   const ST = {data: null, local: false, rows: [], q: '', zone: '', promo: '', cat: '', sort: 'qty', shown: 40};
   const ST_TYPE = {bogo: 'Buy 2 BOGO', sel: 'Selected Item', lp: 'Last Piece'};
@@ -1943,17 +2200,17 @@
   function stPrep(){
     const D = ST.data, bins = D.bins;
     ST.rows = D.items.map(it => {
-      let sa = 0, wh = 0, ot = 0, refill = 0;
+      let sa = 0, wh = 0, ot = 0, refill = 0, hid = 0;
       const sizes = it.s.map(([z, art, at]) => {
         const o = {z, art, sa: 0, wh: 0, ot: 0, bins: at.map(([bi, q]) => ({b: bins[bi][0], zone: bins[bi][1], k: zoneKind(bins[bi][1]), q}))};
-        o.bins.forEach(b => { o[b.k] += b.q; });
+        o.bins.forEach(b => { o[b.k] += b.q; b.hid = HIDE.bins.has(b.b); if(b.hid) o.hid = (o.hid || 0) + b.q; });
         o.refill = !it.x && o.sa === 0 && o.wh > 0;
-        sa += o.sa; wh += o.wh; ot += o.ot; if(o.refill) refill++;
+        sa += o.sa; wh += o.wh; ot += o.ot; if(o.refill) refill++; hid += o.hid || 0;
         return o;
       });
       const kind = it.x ? 'x' : it.t && it.d > 0 ? it.t : 'norm';
       const search = [it.n, it.g, it.g + '.' + it.k, it.k, it.l3, it.l4].concat(sizes.map(s => s.art + ' ' + s.bins.map(b => b.b).join(' '))).join(' ').toLowerCase();
-      return {it, sizes, sa, wh, ot, qty: sa + wh + ot, refill, kind, search};
+      return {it, sizes, sa, wh, ot, hid, qty: sa + wh + ot, refill, kind, search};
     });
     const cats = [...new Set(ST.rows.map(r => r.it.l3 || 'LAINNYA'))].sort();
     $('stCat').innerHTML = '<option value="">Semua kategori</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
@@ -1961,14 +2218,16 @@
     $('stPromo').innerHTML = '<option value="">Semua</option>' + [['bogo', 'Buy 2 BOGO'], ['sel', 'Selected Item'], ['lp', 'Last Piece'], ['norm', 'Harga normal'], ['x', 'Tidak tampil ke customer']]
       .filter(([k]) => kc[k]).map(([k, l]) => `<option value="${k}">${l} (${fmt(kc[k])})</option>`).join('');
     ['stCat', 'stPromo'].forEach(id => { $(id).value = ST[id === 'stCat' ? 'cat' : 'promo']; });
-    const tot = ST.rows.reduce((a, r) => ({sa: a.sa + r.sa, wh: a.wh + r.wh, ot: a.ot + r.ot, rf: a.rf + r.refill}), {sa: 0, wh: 0, ot: 0, rf: 0});
+    const tot = ST.rows.reduce((a, r) => ({sa: a.sa + r.sa, wh: a.wh + r.wh, ot: a.ot + r.ot, rf: a.rf + r.refill, hid: a.hid + r.hid}), {sa: 0, wh: 0, ot: 0, rf: 0, hid: 0});
     const gen = D.generated ? new Date(D.generated).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'}) : '-';
     setStatus($('stStatus'), ST.local ? 'warn' : 'ok', `<span><b>Stok per ${esc(tglID(D.stockDate))}</b> &middot; ${esc((D.locs || []).join(', '))} &middot; dibuat ${esc(gen)} WIB${ST.local ? ' &middot; <b>belum diterbitkan</b> (data dari sesi ini)' : ''}</span>`);
     $('stStats').innerHTML = `
       <div class="stat"><div class="num">${fmt(tot.sa)}</div><div class="lbl">Pcs di area jual</div></div>
       <div class="stat"><div class="num">${fmt(tot.wh)}</div><div class="lbl">Pcs di gudang</div></div>
       <div class="stat"><div class="num">${fmt(tot.ot)}</div><div class="lbl">Pcs di staging / bin lain</div></div>
-      <div class="stat ${tot.rf ? 'flag' : ''}"><div class="num">${fmt(tot.rf)}</div><div class="lbl">Ukuran ada di gudang, kosong di area jual</div></div>`;
+      <div class="stat ${tot.rf ? 'flag' : ''}"><div class="num">${fmt(tot.rf)}</div><div class="lbl">Ukuran ada di gudang, kosong di area jual</div></div>` +
+      (tot.hid ? `<div class="stat flag"><div class="num">${fmt(tot.hid)}</div><div class="lbl">Pcs di bin tersembunyi</div></div>` : '');
+    renderHideSt();
     $('stMain').hidden = false;
     ST.shown = 40;
     stRender();
@@ -1982,6 +2241,7 @@
       if(ST.zone === 'sa' && !r.sa) return false;
       if(ST.zone === 'wh' && !r.wh) return false;
       if(ST.zone === 'other' && !r.ot) return false;
+      if(ST.zone === 'hid' && !r.hid) return false;
       return words.every(w => r.search.includes(w));
     });
     const by = {qty: (a, b) => b.qty - a.qty, wh: (a, b) => b.wh - a.wh || b.qty - a.qty, name: (a, b) => a.it.n.localeCompare(b.it.n) || a.it.k.localeCompare(b.it.k), disc: (a, b) => b.it.d - a.it.d || b.qty - a.qty}[ST.sort];
@@ -1999,7 +2259,7 @@
       const price = it.p ? (it.d ? `Rp ${fmt(net)} <s class="muted">Rp ${fmt(it.p)}</s>` : `Rp ${fmt(it.p)}`) : '<span class="muted">tanpa harga</span>';
       const sizes = r.sizes.map(s => `<tr class="${s.refill ? 'refill' : ''}"><td><b>${esc(s.z === 'NOS' ? 'All size' : s.z)}</b>${s.refill ? '<div class="flag">Isi dari gudang</div>' : ''}</td><td class="mono">${esc(s.art)}</td>
         <td class="n ${s.sa ? '' : 'z0'}">${fmt(s.sa)}</td><td class="n ${s.wh ? '' : 'z0'}">${fmt(s.wh)}</td><td class="n ${s.ot ? '' : 'z0'}">${fmt(s.ot)}</td>
-        <td><div class="bins">${s.bins.map(b => `<span class="bin ${b.k}" title="${esc(b.zone)}">${esc(b.b)} &middot; ${fmt(b.q)}</span>`).join('')}</div></td></tr>`).join('');
+        <td><div class="bins">${s.bins.map(b => `<span class="bin ${b.hid ? 'hid' : b.k}" title="${esc(b.zone)}${b.hid ? ' (disembunyikan dari customer)' : ''}">${esc(b.b)} &middot; ${fmt(b.q)}</span>`).join('')}</div></td></tr>`).join('');
       return `<div class="sti"><div class="ph">${src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('Tanpa foto'))">` : 'Tanpa foto'}</div>
         <div style="min-width:0"><div class="hd"><b>${esc(it.n)}</b>${tag}</div>
         <div class="meta"><span class="mono">${esc(it.g)}.${esc(it.k)}</span> &middot; ${esc([it.l3, it.l4].filter(Boolean).join(' / ') || '-')} &middot; ${price} &middot; total <b>${fmt(r.qty)}</b> pcs</div>
@@ -2014,12 +2274,12 @@
   $('stMore').addEventListener('click', () => { ST.shown += 40; stRender(); });
   $('stReload').addEventListener('click', () => stInit(true));
   $('stExport').addEventListener('click', () => {
-    const aoa = [['Generic', 'Warna', 'Nama', 'Kategori', 'Sub-kategori', 'Ukuran', 'Artikel', 'Harga normal', 'Diskon %', 'Harga promo', 'Promo', 'Area jual', 'Gudang', 'Lainnya', 'Total', 'Perlu isi area jual', 'Bin (qty)']];
+    const aoa = [['Generic', 'Warna', 'Nama', 'Kategori', 'Sub-kategori', 'Ukuran', 'Artikel', 'Harga normal', 'Diskon %', 'Harga promo', 'Promo', 'Area jual', 'Gudang', 'Lainnya', 'Total', 'Perlu isi area jual', 'Bin (qty)', 'Pcs di bin tersembunyi']];
     stList().forEach(r => r.sizes.forEach(s => {
       const it = r.it;
       aoa.push([it.g, it.k, it.n, it.l3 || '', it.l4 || '', s.z, s.art, it.p, it.d, Math.round(it.p * (1 - it.d / 100)),
         r.kind === 'x' ? 'Tidak tampil: ' + (X_LABEL[it.x] || '') : r.kind === 'norm' ? 'Harga normal' : ST_TYPE[r.kind],
-        s.sa, s.wh, s.ot, s.sa + s.wh + s.ot, s.refill ? 'Ya' : '', s.bins.map(b => `${b.b} (${b.q})`).join(', ')]);
+        s.sa, s.wh, s.ot, s.sa + s.wh + s.ot, s.refill ? 'Ya' : '', s.bins.map(b => `${b.b} (${b.q})${b.hid ? ' [disembunyikan]' : ''}`).join(', '), s.hid || 0]);
     }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Stok per bin');
